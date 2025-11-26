@@ -1,20 +1,59 @@
-from flask import Flask
+from flask import Flask, render_template, redirect, url_for
+import sqlite3
 
-# Create an instance of the Flask class
-# __name__ is the name of the current Python module
 app = Flask(__name__)
 
 
-# Define a route for the root URL ("/")
-# This decorator tells Flask which URL should trigger our function
-@app.route('/')
-def hello_world():
-    """This function runs when the root URL is accessed."""
-    return 'Hello, World!'
+# ---------- DATABASE SETUP ----------
+def init_db():
+    conn = sqlite3.connect("counter.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS counter (
+            id INTEGER PRIMARY KEY,
+            value INTEGER
+        )
+    """)
+
+    # Create row only if empty
+    c.execute("SELECT value FROM counter WHERE id = 1")
+    if c.fetchone() is None:
+        c.execute("INSERT INTO counter (id, value) VALUES (1, 0)")
+
+    conn.commit()
+    conn.close()
 
 
-# Check if the script is executed directly (not imported)
-if __name__ == '__main__':
-    # Run the app in debug mode, which provides helpful error messages
-    # and automatically reloads the server when code changes.
+def get_counter():
+    conn = sqlite3.connect("counter.db")
+    c = conn.cursor()
+    c.execute("SELECT value FROM counter WHERE id = 1")
+    value = c.fetchone()[0]
+    conn.close()
+    return value
+
+
+def increase_counter():
+    conn = sqlite3.connect("counter.db")
+    c = conn.cursor()
+    c.execute("UPDATE counter SET value = value + 1 WHERE id = 1")
+    conn.commit()
+    conn.close()
+
+
+# ---------- ROUTES ----------
+@app.route("/")
+def index():
+    value = get_counter()
+    return render_template("index.html", value=value)
+
+
+@app.route("/increase")
+def increase():
+    increase_counter()
+    return redirect(url_for("index"))
+
+
+if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
