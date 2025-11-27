@@ -1,14 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Counter Example</title>
+    <title>Clicker App</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        h1 { font-size: 80px; margin-bottom: 20px; }
+        button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
-    <h1>Shared Counter</h1>
-    <h2>Current value: {{ value }}</h2>
+    <h2>Global Clicker</h2>
 
-    <form action="/increase">
-        <button type="submit">Increase by 1</button>
+    <!-- The number -->
+    <h1>{{ count }}</h1>
+
+    <!-- The Button -->
+    <form method="POST">
+        <button type="submit">CLICK ME!</button>
     </form>
 </body>
 </html>

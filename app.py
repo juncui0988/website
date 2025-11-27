@@ -1,64 +1,63 @@
 import os
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# 1. Get the URL from Render
-database_url = os.environ.get('DATABASE_URL')
+# ========================================================
+# 1. DATABASE CONFIGURATION (WITH FIX)
+# ========================================================
+# Get the URL from Render
+db_url = os.environ.get('DATABASE_URL')
 
-# 2. FAILSAFE: If we are running locally and there is no URL, use SQLite
-if database_url is None:
-    database_url = 'sqlite:///counter.db'
+# If we are local (no Render URL), use a local file
+if not db_url:
+    db_url = 'sqlite:///clicker.db'
 
-# 3. THE FIX: Change 'postgres://' to 'postgresql://'
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+# THE FIX: Render uses 'postgres://', but SQLAlchemy needs 'postgresql://'
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# 4. Pass the corrected URL to Flask
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
 
-# ---------- DATABASE MODEL ----------
-# Instead of "CREATE TABLE", we define a Class
+# ========================================================
+# 2. DATABASE MODEL
+# ========================================================
 class Counter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    value = db.Column(db.Integer, default=0)
+    count = db.Column(db.Integer, default=0)
 
 
-# ---------- HELPER FUNCTIONS ----------
-def get_or_create_counter():
-    # Try to find the counter with ID 1
-    counter = Counter.query.get(1)
-    if not counter:
-        # If it doesn't exist, create it
-        counter = Counter(id=1, value=0)
-        db.session.add(counter)
-        db.session.commit()
-    return counter
-
-
-# ---------- ROUTES ----------
-@app.route("/")
+# ========================================================
+# 3. ROUTES
+# ========================================================
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    counter = get_or_create_counter()
-    return render_template("index.html", value=counter.value)
-
-
-@app.route("/increase")
-def increase():
-    counter = get_or_create_counter()
-    counter.value += 1
-    db.session.commit()  # Saves the change to Postgres
-    return redirect(url_for("index"))
-
-
-if __name__ == "__main__":
-    # This creates the tables in the database if they don't exist
+    # Initialize the database tables if they don't exist yet
+    # (We do this here to ensure it runs on Render automatically)
     with app.app_context():
         db.create_all()
 
+        # Get the counter (create row 1 if it doesn't exist)
+        counter = Counter.query.get(1)
+        if not counter:
+            counter = Counter(id=1, count=0)
+            db.session.add(counter)
+            db.session.commit()
+
+        # If User Clicked the Button (POST request)
+        if request.method == 'POST':
+            counter.count += 1
+            db.session.commit()
+
+        current_count = counter.count
+
+    return render_template('templates/index.html', count=current_count)
+
+
+if __name__ == '__main__':
     app.run(debug=True)
