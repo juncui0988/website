@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_random_key_change_this_later'  # Needed for sessions
+app.secret_key = 'super_secret_random_key_change_this_later'
 
 # ========================================================
 # 1. DATABASE CONFIGURATION
@@ -13,7 +13,6 @@ db_url = os.environ.get('DATABASE_URL')
 if not db_url:
     db_url = 'sqlite:///clicker.db'
 
-# Fix for Render PostgreSQL URL
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
@@ -24,9 +23,10 @@ db = SQLAlchemy(app)
 
 
 # ========================================================
-# 2. DATABASE MODEL (USER)
+# 2. DATABASE MODEL (Renamed Table to 'users')
 # ========================================================
 class User(db.Model):
+    __tablename__ = 'users'  # Explicitly naming the table 'users' to avoid Postgres conflicts
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -34,19 +34,29 @@ class User(db.Model):
 
 
 # ========================================================
-# 3. ROUTES
+# 3. CRITICAL FIX: CREATE TABLES ON STARTUP
 # ========================================================
+# This block runs immediately when Render starts the app
+with app.app_context():
+    db.create_all()
 
+
+# ========================================================
+# 4. ROUTES
+# ========================================================
 @app.route('/')
 def index():
-    # If user is not logged in, send them to login page
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # Get current user
     user = User.query.get(session['user_id'])
 
-    # Get Top 10 Leaderboard
+    # If user was deleted from DB but cookie remains, force logout
+    if not user:
+        session.pop('user_id', None)
+        return redirect(url_for('login'))
+
+    # Top 10 Leaderboard
     leaderboard = User.query.order_by(User.clicks.desc()).limit(10).all()
 
     return render_template('index.html', user=user, leaderboard=leaderboard)
@@ -59,27 +69,28 @@ def login():
         password = request.form['password'].strip()
 
         if not username or not password:
-            return "Please fill in all fields", 400
+            return render_template('login.html', error="Please fill in all fields")
 
-        # Check if user exists
         user = User.query.filter_by(username=username).first()
 
         if user:
-            # --- EXISTING USER: CHECK PASSWORD ---
+            # Existing user: Check Password
             if check_password_hash(user.password_hash, password):
                 session['user_id'] = user.id
                 return redirect(url_for('index'))
             else:
-                return render_template('login.html', error="Wrong password for this username!")
+                return render_template('login.html', error="Wrong password!")
         else:
-            # --- NEW USER: CREATE ACCOUNT ---
-            hashed_pw = generate_password_hash(password)
-            new_user = User(username=username, password_hash=hashed_pw, clicks=0)
-            db.session.add(new_user)
-            db.session.commit()
-
-            session['user_id'] = new_user.id
-            return redirect(url_for('index'))
+            # New user: Create Account
+            try:
+                hashed_pw = generate_password_hash(password)
+                new_user = User(username=username, password_hash=hashed_pw, clicks=0)
+                db.session.add(new_user)
+                db.session.commit()
+                session['user_id'] = new_user.id
+                return redirect(url_for('index'))
+            except:
+                return render_template('login.html', error="Error creating account. Try again.")
 
     return render_template('login.html')
 
@@ -88,8 +99,9 @@ def login():
 def click():
     if 'user_id' in session:
         user = User.query.get(session['user_id'])
-        user.clicks += 1
-        db.session.commit()
+        if user:
+            user.clicks += 1
+            db.session.commit()
     return redirect(url_for('index'))
 
 
@@ -100,6 +112,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
