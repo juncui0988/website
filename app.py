@@ -56,7 +56,7 @@ def index():
 
         current_count = counter.count
 
-    return render_template('templates/index.html', count=current_count)
+    return render_template('index.html', count=current_count)
 
 
 if __name__ == '__main__':
