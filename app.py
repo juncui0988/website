@@ -4,12 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# ---------- CONFIGURATION ----------
-# This line checks for a Render database URL.
-# If not found, it falls back to a local SQLite file for testing on your PC.
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///counter.db')
+database_url = os.environ.get('DATABASE_URL')
 
-# Fix for Render: SQLAlchemy requires 'postgresql://', but Render returns 'postgres://'
+# ERROR PREVENTION:
+# If the URL is empty (running locally without env var), use sqlite
+if not database_url:
+    database_url = 'sqlite:///counter.db'
+
+# If the URL starts with postgres://, change it to postgresql://
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
