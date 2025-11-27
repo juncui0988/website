@@ -4,21 +4,21 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
+# 1. Get the URL from Render
 database_url = os.environ.get('DATABASE_URL')
 
-# ERROR PREVENTION:
-# If the URL is empty (running locally without env var), use sqlite
-if not database_url:
+# 2. FAILSAFE: If we are running locally and there is no URL, use SQLite
+if database_url is None:
     database_url = 'sqlite:///counter.db'
 
-# If the URL starts with postgres://, change it to postgresql://
+# 3. THE FIX: Change 'postgres://' to 'postgresql://'
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
+# 4. Pass the corrected URL to Flask
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize the Database
 db = SQLAlchemy(app)
 
 
