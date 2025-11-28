@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clicker</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+        h1 { font-size: 100px; margin: 20px 0; color: #333; }
+
+        /* The Big Click Button */
+        #clickBtn {
+            padding: 30px 60px; font-size: 30px;
+            background-color: #007bff; color: white;
+            border: none; border-radius: 15px; cursor: pointer;
+            box-shadow: 0 8px #0056b3;
+            transition: transform 0.1s;
+        }
+        #clickBtn:active { transform: translateY(4px); box-shadow: 0 4px #0056b3; }
+
+        /* Navigation Buttons */
+        .nav-btn {
+            display: inline-block; margin: 20px; padding: 10px 20px;
+            background-color: #6c757d; color: white; text-decoration: none;
+            border-radius: 5px; font-weight: bold;
+        }
+        .logout { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; padding: 0 20px;">
+        <a href="/stats" class="nav-btn">📊 View Leaderboard</a>
+        <a href="/logout" class="nav-btn logout">Logout</a>
+    </div>
+
+    <h2>Player: {{ user.username }}</h2>
+
+    <h1 id="scoreDisplay">{{ user.clicks }}</h1>
+
+    <button id="clickBtn">CLICK!</button>
+
+    <script>
+        const button = document.getElementById('clickBtn');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        button.addEventListener('click', function() {
+            // --- THE FIX: OPTIMISTIC UI ---
+
+            // 1. Get the current number
+            let currentScore = parseInt(scoreDisplay.innerText);
+
+            // 2. Update the screen INSTANTLY (Don't wait for the server)
+            scoreDisplay.innerText = currentScore + 1;
+
+            // 3. Send the data to the server in the background
+            fetch('/click', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // If the server fails (internet lost), revert the number
+                    scoreDisplay.innerText = currentScore;
+                    console.error("Server error, click not saved.");
+                }
+            })
+            .catch(error => {
+                // If internet error, revert the number
+                scoreDisplay.innerText = currentScore;
+                console.error("Network error:", error);
+            });
+        });
+    </script>
+</body>
+</html>
