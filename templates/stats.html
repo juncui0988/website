@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stats & Leaderboard</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+
+        .global-box {
+            background: #333; color: white; padding: 20px;
+            display: inline-block; border-radius: 10px; margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .global-count { font-size: 50px; margin: 0; color: #4cd137; }
+
+        /* Table Styles */
+        table {
+            margin: 0 auto; border-collapse: collapse; width: 90%; max-width: 800px;
+            background: white; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        th, td { padding: 15px; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; position: sticky; top: 0; }
+
+        /* Zebra striping for long lists */
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; } /* Highlight row on hover */
+
+        .back-btn {
+            display: inline-block; margin-bottom: 30px; padding: 10px 20px;
+            background-color: #6c757d; color: white; text-decoration: none;
+            border-radius: 5px; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">⬅ Back to Clicking</a>
+
+    <br>
+
+    <div class="global-box">
+        <div>TOTAL GLOBAL CLICKS</div>
+        <div class="global-count">{{ total_clicks }}</div>
+    </div>
+
+    <!-- Title Changed -->
+    <h3>🏆 Full Leaderboard ({{ leaderboard|length }} Players) 🏆</h3>
+
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>User</th>
+            <th>Clicks</th>
+        </tr>
+        {% for player in leaderboard %}
+        <tr>
+            <td>#{{ loop.index }}</td>
+            <td><strong>{{ player.username }}</strong></td>
+            <td>{{ player.clicks }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>

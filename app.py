@@ -1,7 +1,7 @@
 import os
-# 1. Add 'jsonify' to imports
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import func
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -51,20 +51,36 @@ with app.app_context():
 # ========================================================
 @app.route('/')
 def index():
+    # Ensure DB tables exist
+    with app.app_context():
+        db.create_all()
+
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # .get() can sometimes fail with SSL errors if not handled,
-    # but pool_pre_ping fix above solves this.
     user = User.query.get(session['user_id'])
-
     if not user:
         session.pop('user_id', None)
         return redirect(url_for('login'))
 
-    leaderboard = User.query.order_by(User.clicks.desc()).limit(10).all()
+    # REMOVED: Leaderboard and Total Clicks calculation
+    # Now we just send the User object for clicking
+    return render_template('index.html', user=user)
 
-    return render_template('index.html', user=user, leaderboard=leaderboard)
+
+@app.route('/stats')
+def stats():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 1. Calculate Global Clicks
+    total_clicks = db.session.query(func.sum(User.clicks)).scalar() or 0
+
+    # 2. Get Leaderboard (ALL PLAYERS)
+    # We removed .limit(10) here
+    leaderboard = User.query.order_by(User.clicks.desc()).all()
+
+    return render_template('stats.html', total_clicks=total_clicks, leaderboard=leaderboard)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -106,7 +122,6 @@ def click():
         if user:
             user.clicks += 1
             db.session.commit()
-            # Return the new number as JSON instead of reloading the page
             return jsonify({'clicks': user.clicks})
     return jsonify({'error': 'Not logged in'}), 401
 
