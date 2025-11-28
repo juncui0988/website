@@ -1,47 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Clicker Leaderboard</title>
+    <title>Leaderboard</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
-        h1 { font-size: 80px; margin: 20px 0; color: #333; }
-        
-        .click-btn { 
-            padding: 20px 40px; font-size: 24px; background-color: #007bff; 
-            color: white; border: none; border-radius: 8px; cursor: pointer; 
-            box-shadow: 0 4px #0056b3; transform: translateY(0);
+        h1 { font-size: 80px; margin: 20px 0; }
+        button {
+            padding: 20px 40px; font-size: 24px;
+            background-color: #007bff; color: white;
+            border: none; border-radius: 8px; cursor: pointer;
+            transition: transform 0.1s;
         }
-        .click-btn:active { transform: translateY(4px); box-shadow: none; }
-
-        .logout { position: absolute; top: 20px; right: 20px; color: red; text-decoration: none; }
-
+        button:active { transform: scale(0.95); } /* Visual effect when clicking */
         table { margin: 50px auto; border-collapse: collapse; width: 300px; background: white; }
         th, td { padding: 10px; border-bottom: 1px solid #ddd; }
         th { background-color: #333; color: white; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
+        .logout { color: red; float: right; text-decoration: none; font-weight: bold;}
     </style>
 </head>
 <body>
     <a href="/logout" class="logout">Logout</a>
+    <h2>Player: {{ user.username }}</h2>
 
-    <h2>Welcome, {{ user.username }}!</h2>
-    
-    <!-- User Score -->
-    <h1>{{ user.clicks }}</h1>
+    <!-- 1. Give the Score an ID so JavaScript can find it -->
+    <h1 id="scoreDisplay">{{ user.clicks }}</h1>
 
-    <!-- Click Button -->
-    <form action="/click" method="POST">
-        <button type="submit" class="click-btn">CLICK!</button>
-    </form>
+    <!-- 2. Remove the <form> tag. Just use a regular button with an ID -->
+    <button id="clickBtn">CLICK!</button>
 
-    <!-- Leaderboard -->
-    <h3>🏆 Top 10 Clickers 🏆</h3>
+    <h3>🏆 Leaderboard 🏆</h3>
+    <p style="font-size: 12px; color: #666;">(Refresh page to update leaderboard)</p>
     <table>
-        <tr>
-            <th>Rank</th>
-            <th>User</th>
-            <th>Clicks</th>
-        </tr>
+        <tr><th>Rank</th><th>User</th><th>Clicks</th></tr>
         {% for player in leaderboard %}
         <tr>
             <td>#{{ loop.index }}</td>
@@ -50,5 +40,26 @@
         </tr>
         {% endfor %}
     </table>
+
+    <!-- 3. The Magic JavaScript -->
+    <script>
+        const button = document.getElementById('clickBtn');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        button.addEventListener('click', function() {
+            // Send a secret message to Python
+            fetch('/click', {
+                method: 'POST'
+            })
+            .then(response => response.json()) // Read the JSON response
+            .then(data => {
+                // Update the number on the screen instantly
+                if (data.clicks) {
+                    scoreDisplay.innerText = data.clicks;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
 </body>
 </html>

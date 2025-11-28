@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+# 1. Add 'jsonify' to imports
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -105,7 +106,9 @@ def click():
         if user:
             user.clicks += 1
             db.session.commit()
-    return redirect(url_for('index'))
+            # Return the new number as JSON instead of reloading the page
+            return jsonify({'clicks': user.clicks})
+    return jsonify({'error': 'Not logged in'}), 401
 
 
 @app.route('/logout')
