@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_random_key_change_this_later'
@@ -242,6 +243,24 @@ def debug_reset():
     db.session.query(DailyBoss).delete()
     db.session.commit()
     return "Boss reset."
+
+
+@app.route('/fix_database')
+def fix_database():
+    try:
+        # 1. Add the 'coins' column to the existing 'users' table
+        # We use 'IF NOT EXISTS' so it doesn't crash if you run it twice.
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0;"))
+            conn.commit()
+
+        # 2. Create the new tables (DailyBoss, BossParticipation)
+        # db.create_all only creates tables that don't exist yet.
+        db.create_all()
+
+        return "Database updated! Coins column added and Boss tables created. You can go back to home now."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 
 if __name__ == '__main__':
