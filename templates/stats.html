@@ -1,64 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Stats & Leaderboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
-
-        .global-box {
-            background: #333; color: white; padding: 20px;
-            display: inline-block; border-radius: 10px; margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        :root {
+            --primary: #3b82f6;
+            --text-main: #1e293b;
+            --text-muted: #94a3b8;
+            --bg-color: #ffffff;
+            --row-hover: #f8fafc;
+            --border: #f1f5f9;
+            --highlight-bg: #eff6ff;
+            --coin-color: #f59e0b;
         }
-        .global-count { font-size: 50px; margin: 0; color: #4cd137; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 40px;
+            display: inline-block;
+            transition: color 0.2s;
+        }
+        .nav-link:hover { color: var(--primary); }
 
-        /* Table Styles */
+        .global-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .global-count {
+            font-size: 60px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0 0 50px 0;
+            line-height: 1;
+        }
+
+        .table-container {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
         table {
-            margin: 0 auto; border-collapse: collapse; width: 90%; max-width: 800px;
-            background: white; border-radius: 10px; overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            text-align: left;
         }
-        th, td { padding: 15px; border-bottom: 1px solid #ddd; }
-        th { background-color: #007bff; color: white; position: sticky; top: 0; }
+        th {
+            background-color: #fff;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 15px 25px;
+            border-bottom: 2px solid var(--border);
+            font-weight: 700;
+        }
+        td {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border);
+            font-size: 15px;
+            color: var(--text-main);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: var(--row-hover); }
 
-        /* Zebra striping for long lists */
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #f1f1f1; } /* Highlight row on hover */
+        /* Highlight the logged-in user */
+        tr.current-user {
+            background-color: var(--highlight-bg);
+        }
+        tr.current-user td {
+            color: var(--primary);
+            font-weight: 700;
+        }
 
-        .back-btn {
-            display: inline-block; margin-bottom: 30px; padding: 10px 20px;
-            background-color: #6c757d; color: white; text-decoration: none;
-            border-radius: 5px; font-weight: bold;
+        .col-rank { width: 60px; color: var(--text-muted); font-weight: 600; }
+
+        /* Score (Main Stat) */
+        .col-clicks {
+            text-align: right;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Coins (Secondary Stat) */
+        .col-coins {
+            text-align: right;
+            color: var(--coin-color);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            width: 120px;
         }
     </style>
 </head>
 <body>
-    <a href="/" class="back-btn">⬅ Back to Clicking</a>
 
-    <br>
+    <a href="/" class="nav-link">← Back to Game</a>
 
-    <div class="global-box">
-        <div>TOTAL GLOBAL CLICKS</div>
-        <div class="global-count">{{ total_clicks }}</div>
+    <div class="global-label">Global Clicks</div>
+    <div class="global-count">{{ total_clicks }}</div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-rank">#</th>
+                    <th>Player</th>
+                    <th class="col-clicks">Score</th>
+                    <th class="col-coins">Coins</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in leaderboard %}
+                <tr class="{{ 'current-user' if player.id == current_user_id else '' }}">
+                    <td class="col-rank">{{ loop.index }}</td>
+                    <td>
+                        {{ player.username }}
+                        {% if player.id == current_user_id %}(You){% endif %}
+                    </td>
+                    <td class="col-clicks">{{ player.clicks }}</td>
+                    <!-- CHANGED: No more .2f formatting -->
+                    <td class="col-coins">{{ player.coins }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-
-    <!-- Title Changed -->
-    <h3>🏆 Full Leaderboard ({{ leaderboard|length }} Players) 🏆</h3>
-
-    <table>
-        <tr>
-            <th>Rank</th>
-            <th>User</th>
-            <th>Clicks</th>
-        </tr>
-        {% for player in leaderboard %}
-        <tr>
-            <td>#{{ loop.index }}</td>
-            <td><strong>{{ player.username }}</strong></td>
-            <td>{{ player.clicks }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
 </body>
 </html>

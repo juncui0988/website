@@ -1,55 +1,470 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Clicker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker War</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
-        h1 { font-size: 100px; margin: 20px 0; color: #333; }
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-shadow: #1d4ed8;
+            --danger: #ef4444;
+            --boss-color: #dc2626;
+            --coin-color: #f59e0b;
+            --border-subtle: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
 
-        /* The Big Click Button */
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            width: 100%;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px 6px 6px;
+            background: white;
+            border: 1px solid var(--border-subtle);
+            border-radius: 30px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .user-info-col { display: flex; flex-direction: column; line-height: 1.2; }
+        .user-name { font-weight: 600; font-size: 15px; color: var(--text-main); }
+        .user-coins { font-size: 12px; color: var(--coin-color); font-weight: 700; }
+
+        .nav-group { display: flex; gap: 30px; }
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover { color: var(--primary); transform: translateY(-1px); }
+        .nav-link.logout:hover { color: var(--danger); }
+
+        /* --- MAIN --- */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 60px;
+            position: relative;
+        }
+
+        /* --- MODAL (UPDATES) --- */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 420px;
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-title { font-size: 20px; font-weight: 800; color: var(--text-main); }
+        .modal-badge {
+            background: #dbeafe; color: var(--primary);
+            font-size: 11px; font-weight: 700;
+            padding: 4px 8px; border-radius: 6px;
+            text-transform: uppercase;
+        }
+        .update-list {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+        .update-list li {
+            font-size: 14px;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.5;
+        }
+        .update-list li::before {
+            content: "•";
+            color: var(--primary);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        .btn-close-modal {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--text-main);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn-close-modal:hover { background-color: black; }
+
+
+        /* --- BOSS BAR --- */
+        #bossContainer {
+            position: absolute;
+            top: 20px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .boss-label {
+            color: var(--boss-color);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+            margin-bottom: 8px;
+            animation: pulse 2s infinite;
+        }
+        .health-bar-bg {
+            width: 100%;
+            height: 24px;
+            background-color: #fee2e2;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--boss-color);
+            position: relative;
+        }
+        .health-bar-fill {
+            height: 100%;
+            background-color: var(--boss-color);
+            width: 100%;
+            transition: width 0.2s ease-out;
+        }
+        .health-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .score-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        #scoreDisplay {
+            font-size: 120px;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 0 0 60px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
         #clickBtn {
-            padding: 30px 60px; font-size: 30px;
-            background-color: #007bff; color: white;
-            border: none; border-radius: 15px; cursor: pointer;
-            box-shadow: 0 8px #0056b3;
-            transition: transform 0.1s;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 15px 0 var(--primary-shadow), 0 20px 40px rgba(59, 130, 246, 0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
-        #clickBtn:active { transform: translateY(4px); box-shadow: 0 4px #0056b3; }
+        #clickBtn:active {
+            transform: translateY(10px);
+            box-shadow: 0 5px 0 var(--primary-shadow), 0 5px 10px rgba(59, 130, 246, 0.3);
+        }
+        body.boss-mode #clickBtn {
+            background-color: var(--boss-color);
+            box-shadow: 0 15px 0 #991b1b, 0 20px 40px rgba(220, 38, 38, 0.3);
+        }
+        body.boss-mode #clickBtn:active {
+            box-shadow: 0 5px 0 #991b1b, 0 5px 10px rgba(220, 38, 38, 0.3);
+        }
 
-        /* Navigation Buttons */
-        .nav-btn {
-            display: inline-block; margin: 20px; padding: 10px 20px;
-            background-color: #6c757d; color: white; text-decoration: none;
-            border-radius: 5px; font-weight: bold;
+        @media (max-width: 600px) {
+            #scoreDisplay { font-size: 80px; }
+            #clickBtn { width: 180px; height: 180px; font-size: 20px; }
+            header { padding: 15px 20px; }
+            .nav-group { gap: 15px; }
+            .user-name { display: none; }
         }
-        .logout { background-color: #dc3545; }
     </style>
 </head>
 <body>
-    <div style="display: flex; justify-content: space-between; padding: 0 20px;">
-        <a href="/stats" class="nav-btn">📊 View Leaderboard</a>
-        <a href="/logout" class="nav-btn logout">Logout</a>
+
+    <!-- MODAL HTML -->
+    <div id="updateModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Latest Updates</span>
+                <span class="modal-badge">New</span>
+            </div>
+            <ul class="update-list">
+                <li><strong>Cleaner User Interface:</strong> Enhanced clicking experience for smoother gameplay.</li>
+                <li><strong>Layout Changes:</strong> Improved function layouts and navigation.</li>
+                <li><strong>Coin Economy:</strong> Added currency system (Store currently in progress).</li>
+                <li><strong>World Boss:</strong> Spawns daily at 8 o'clock in the morning. Defeating it awards coins!</li>
+            </ul>
+            <button class="btn-close-modal" onclick="closeModal()">Got it!</button>
+        </div>
     </div>
 
-    <h2>Player: {{ user.username }}</h2>
+    <header>
+        <div class="user-profile">
+            <div class="user-avatar">{{ user.username[0]|upper }}</div>
+            <div class="user-info-col">
+                <span class="user-name">{{ user.username }}</span>
+                <span class="user-coins">Coins: <span id="coinDisplay">{{ user.coins }}</span></span>
+            </div>
+        </div>
+        <div class="nav-group">
+            <!-- Added Update Button -->
+            <a onclick="openModal()" class="nav-link">
+                <span>News</span> ⓘ
+            </a>
+            <a onclick="saveAndExit('/stats')" class="nav-link">
+                <span>Leaderboard</span> ↗
+            </a>
+            <a onclick="saveAndExit('/logout')" class="nav-link logout">
+                <span>Exit</span> ✕
+            </a>
+        </div>
+    </header>
 
-    <h1 id="scoreDisplay">{{ user.clicks }}</h1>
+    <main>
+        {% set is_boss_active = boss and not boss.is_defeated %}
 
-    <button id="clickBtn">CLICK!</button>
+        <div id="bossContainer" style="display: {{ 'block' if is_boss_active else 'none' }};">
+            <div class="boss-label">⚔️ World Boss Active ⚔️</div>
+            <div class="health-bar-bg">
+                {% set initial_width = (boss.current_hp / boss.max_hp * 100) if is_boss_active else 100 %}
+                <div class="health-bar-fill" id="bossHealthFill" style="width: {{ initial_width }}%;"></div>
+                <div class="health-text">
+                    <span id="bossHealthText">{{ boss.current_hp if is_boss_active else 100000 }}</span> HP
+                </div>
+            </div>
+        </div>
+
+        <div class="score-label">Total Clicks</div>
+        <h1 id="scoreDisplay">{{ user.clicks }}</h1>
+
+        <script>
+            if ({{ 'true' if is_boss_active else 'false' }}) {
+                document.body.classList.add('boss-mode');
+            }
+        </script>
+
+        <button id="clickBtn">CLICK</button>
+    </main>
 
     <script>
+        // --- MODAL LOGIC ---
+        const modal = document.getElementById('updateModal');
+        const UPDATE_VERSION = 'v1.0_updates'; // Changing this string will reshow the modal to users
+
+        function openModal() {
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+            // Remember that the user closed it
+            localStorage.setItem('seenPatch', UPDATE_VERSION);
+        }
+
+        // Check if user has seen these specific updates
+        window.addEventListener('load', () => {
+            const seen = localStorage.getItem('seenPatch');
+            if (seen !== UPDATE_VERSION) {
+                // Slight delay for animation niceness
+                setTimeout(openModal, 500);
+            }
+        });
+
+        // --- GAME LOGIC ---
         const button = document.getElementById('clickBtn');
         const scoreDisplay = document.getElementById('scoreDisplay');
+        const coinDisplay = document.getElementById('coinDisplay');
+
+        const bossContainer = document.getElementById('bossContainer');
+        const bossHealthFill = document.getElementById('bossHealthFill');
+        const bossHealthText = document.getElementById('bossHealthText');
+
+        let displayedScore = parseInt(scoreDisplay.innerText);
+        let pendingClicks = 0;
+        let uiDirty = false;
+
+        {% if is_boss_active %}
+            let bossActive = true;
+            let bossHP = {{ boss.current_hp }};
+            let bossMaxHP = {{ boss.max_hp }};
+        {% else %}
+            let bossActive = false;
+            let bossHP = 100000;
+            let bossMaxHP = 100000;
+        {% endif %}
 
         button.addEventListener('click', function() {
-            fetch('/click', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.clicks) {
-                    scoreDisplay.innerText = data.clicks;
+            pendingClicks++;
+            displayedScore++;
+            if (bossActive && bossHP > 0) { bossHP--; }
+            uiDirty = true;
+        });
+
+        function updateUI() {
+            if (uiDirty) {
+                scoreDisplay.innerText = displayedScore;
+
+                if (bossActive) {
+                    bossContainer.style.display = 'block';
+                    if (!document.body.classList.contains('boss-mode')) {
+                        document.body.classList.add('boss-mode');
+                    }
+                    const pct = (bossHP / bossMaxHP) * 100;
+                    bossHealthFill.style.width = pct + "%";
+                    bossHealthText.innerText = Math.max(0, bossHP);
+                } else {
+                    bossContainer.style.display = 'none';
+                    document.body.classList.remove('boss-mode');
                 }
+                uiDirty = false;
+            }
+            requestAnimationFrame(updateUI);
+        }
+        requestAnimationFrame(updateUI);
+
+        function syncClicksToBackend(callback) {
+            const clicksToSend = pendingClicks;
+            pendingClicks = 0;
+
+            fetch('/sync_clicks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ count: clicksToSend })
             })
-            .catch(error => console.error('Error:', error));
+            .then(response => {
+                if (response.status === 401 || response.status === 404) {
+                    window.location.href = '/login';
+                    return {};
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.total_clicks !== undefined) {
+                    displayedScore = data.total_clicks + pendingClicks;
+                    coinDisplay.innerText = data.coins;
+
+                    if (data.boss && data.boss.active) {
+                        bossActive = true;
+                        bossHP = data.boss.current_hp - pendingClicks;
+                        bossMaxHP = data.boss.max_hp;
+                    } else {
+                        bossActive = false;
+                    }
+                    uiDirty = true;
+                }
+                if (callback) callback();
+            })
+            .catch(error => {
+                console.error('Sync error:', error);
+                pendingClicks += clicksToSend;
+            });
+        }
+
+        setInterval(() => { syncClicksToBackend(); }, 2500);
+
+        function saveAndExit(url) {
+            scoreDisplay.style.opacity = "0.3";
+            button.disabled = true;
+            syncClicksToBackend(function() { window.location.href = url; });
+        }
+
+        window.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'hidden' && pendingClicks > 0) {
+                const payload = JSON.stringify({ count: pendingClicks });
+                const blob = new Blob([payload], { type: 'application/json' });
+                navigator.sendBeacon('/sync_clicks', blob);
+                pendingClicks = 0;
+            }
         });
     </script>
 </body>
