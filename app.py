@@ -1,30 +1,26 @@
 import os
-from datetime import datetime
-import pytz
+import json
+from datetime import datetime, timezone
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = '284586jc'
+app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_change_this_in_prod')
 
 db_url = os.environ.get('DATABASE_URL')
-engine_options = {}
-
 if not db_url:
     db_url = 'sqlite:///clicker.db'
-else:
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    engine_options = {
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-        "pool_size": 10,
-        "max_overflow": 20
-    }
+elif db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+engine_options = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -44,62 +40,99 @@ class User(db.Model):
 class DailyBoss(db.Model):
     __tablename__ = 'daily_boss'
     id = db.Column(db.Integer, primary_key=True)
-    date_str = db.Column(db.String(20), unique=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     max_hp = db.Column(db.Integer, default=100000)
     current_hp = db.Column(db.Integer, default=100000)
     is_defeated = db.Column(db.Boolean, default=False)
+    defeated_at = db.Column(db.DateTime, nullable=True)
     total_reward_pool = db.Column(db.Integer, default=100)
 
 
 class BossParticipation(db.Model):
     __tablename__ = 'boss_participation'
     id = db.Column(db.Integer, primary_key=True)
-    boss_id = db.Column(db.Integer, db.ForeignKey('daily_boss.id'))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    boss_id = db.Column(db.Integer, db.ForeignKey('daily_boss.id'), index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
     damage_dealt = db.Column(db.Integer, default=0)
     __table_args__ = (db.UniqueConstraint('boss_id', 'user_id', name='_user_boss_uc'),)
+
+
+class BossVote(db.Model):
+    __tablename__ = 'boss_vote'
+    user_id = db.Column(db.Integer, primary_key=True)
 
 
 with app.app_context():
     db.create_all()
 
 
-def get_spain_time():
-    spain_tz = pytz.timezone('Europe/Madrid')
-    return datetime.now(spain_tz)
+def get_server_time():
+    return datetime.now(timezone.utc)
 
 
-def get_todays_boss_status():
-    now = get_spain_time()
-    today_str = now.strftime('%Y-%m-%d')
+def get_boss_state(user_id=None):
+    boss = DailyBoss.query.order_by(DailyBoss.id.desc()).first()
 
-    if now.hour < 20:
-        return None
-
-    boss = DailyBoss.query.filter_by(date_str=today_str).first()
+    state = {
+        'status': 'VOTING',
+        'boss_data': None,
+        'cooldown_seconds': 0,
+        'votes': 0,
+        'user_voted': False
+    }
 
     if not boss:
-        boss = DailyBoss(date_str=today_str, max_hp=100000, current_hp=100000)
-        db.session.add(boss)
-        db.session.commit()
+        state['votes'] = BossVote.query.count()
+        if user_id:
+            state['user_voted'] = bool(BossVote.query.get(user_id))
+        return state
 
-    return boss
+    if not boss.is_defeated:
+        state['status'] = 'ACTIVE'
+        state['boss_data'] = {
+            'id': boss.id,
+            'current_hp': boss.current_hp,
+            'max_hp': boss.max_hp
+        }
+        return state
+
+    now = get_server_time()
+    defeat_time = boss.defeated_at if boss.defeated_at else boss.created_at
+
+    if defeat_time.tzinfo is None:
+        defeat_time = defeat_time.replace(tzinfo=timezone.utc)
+
+    time_since_death = (now - defeat_time).total_seconds()
+    cooldown_duration = 3600
+
+    if time_since_death < cooldown_duration:
+        state['status'] = 'COOLDOWN'
+        state['cooldown_seconds'] = int(cooldown_duration - time_since_death)
+        return state
+
+    state['status'] = 'VOTING'
+    state['votes'] = BossVote.query.count()
+    if user_id:
+        state['user_voted'] = bool(BossVote.query.get(user_id))
+
+    return state
 
 
 def distribute_rewards(boss_id):
     boss = DailyBoss.query.get(boss_id)
-    participants = BossParticipation.query.filter_by(boss_id=boss_id).all()
+    if not boss or not boss.is_defeated:
+        return
 
+    participants = BossParticipation.query.filter_by(boss_id=boss_id).all()
     total_hp_pool = boss.max_hp
     reward_pool = boss.total_reward_pool
 
     for p in participants:
-        raw_share = (p.damage_dealt / total_hp_pool) * reward_pool
-        share = int(round(raw_share))
-
-        if share > 0:
-            User.query.filter_by(id=p.user_id).update({'coins': User.coins + share})
-
+        if p.damage_dealt > 0:
+            raw_share = (p.damage_dealt / total_hp_pool) * reward_pool
+            share = int(round(raw_share))
+            if share > 0:
+                User.query.filter_by(id=p.user_id).update({'coins': User.coins + share})
     db.session.commit()
 
 
@@ -113,15 +146,13 @@ def index():
         session.pop('user_id', None)
         return redirect(url_for('login'))
 
-    boss = get_todays_boss_status()
-    return render_template('index.html', user=user, boss=boss)
+    game_state = get_boss_state(user.id)
+    return render_template('index.html', user=user, game_state=game_state)
 
 
 @app.route('/stats')
 def stats():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+    user_id = session.get('user_id')
     total_clicks = db.session.query(func.sum(User.clicks)).scalar() or 0
     leaderboard = User.query.with_entities(User.id, User.username, User.clicks, User.coins) \
         .order_by(User.clicks.desc()) \
@@ -130,7 +161,7 @@ def stats():
     return render_template('stats.html',
                            total_clicks=total_clicks,
                            leaderboard=leaderboard,
-                           current_user_id=session['user_id'])
+                           current_user_id=user_id)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -138,7 +169,6 @@ def login():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password'].strip()
-
         user = User.query.filter_by(username=username).first()
 
         if user:
@@ -149,8 +179,7 @@ def login():
                 return render_template('login.html', error="Invalid password.")
         else:
             hashed_pw = generate_password_hash(password)
-            new_user = User(username=username, password_hash=hashed_pw, clicks=0, coins=0)
-
+            new_user = User(username=username, password_hash=hashed_pw)
             try:
                 db.session.add(new_user)
                 db.session.commit()
@@ -159,7 +188,6 @@ def login():
             except IntegrityError:
                 db.session.rollback()
                 return render_template('login.html', error="Username taken.")
-
     return render_template('login.html')
 
 
@@ -169,81 +197,104 @@ def logout():
     return redirect(url_for('login'))
 
 
+@app.route('/vote_boss', methods=['POST'])
+def vote_boss():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Login required'}), 401
+
+    user_id = session['user_id']
+    state = get_boss_state(user_id)
+
+    if state['status'] != 'VOTING':
+        return jsonify({'error': 'Not in voting phase'}), 400
+
+    try:
+        existing_vote = BossVote.query.get(user_id)
+        if not existing_vote:
+            new_vote = BossVote(user_id=user_id)
+            db.session.add(new_vote)
+            db.session.commit()
+    except:
+        db.session.rollback()
+
+    vote_count = BossVote.query.count()
+    if vote_count >= 3:
+        BossVote.query.delete()
+        new_boss = DailyBoss(max_hp=150000, current_hp=150000)
+        db.session.add(new_boss)
+        db.session.commit()
+        return jsonify({'spawned': True})
+
+    return jsonify({'spawned': False, 'votes': vote_count})
+
+
 @app.route('/sync_clicks', methods=['POST'])
 def sync_clicks():
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
 
-    data = request.get_json(force=True, silent=True)
-    if not data:
-        return jsonify({'error': 'Invalid JSON'}), 400
+    try:
+        data = request.get_json(force=True, silent=True) or json.loads(request.data)
+    except:
+        return jsonify({'error': 'Invalid Data'}), 400
 
-    click_count = data.get('count', 0)
+    click_count = int(data.get('count', 0))
     user_id = session['user_id']
 
     if click_count > 0:
         User.query.filter_by(id=user_id).update({'clicks': User.clicks + click_count})
 
-    boss = get_todays_boss_status()
+    state = get_boss_state(user_id)
 
-    if boss and not boss.is_defeated and click_count > 0:
-        boss.current_hp = max(0, boss.current_hp - click_count)
+    if state['status'] == 'ACTIVE':
+        boss_id = state['boss_data']['id']
+        if click_count > 0:
+            participation = BossParticipation.query.filter_by(boss_id=boss_id, user_id=user_id).first()
+            if not participation:
+                participation = BossParticipation(boss_id=boss_id, user_id=user_id, damage_dealt=0)
+                db.session.add(participation)
+            participation.damage_dealt += click_count
 
-        participation = BossParticipation.query.filter_by(boss_id=boss.id, user_id=user_id).first()
-        if not participation:
-            participation = BossParticipation(boss_id=boss.id, user_id=user_id, damage_dealt=0)
-            db.session.add(participation)
+            DailyBoss.query.filter(DailyBoss.id == boss_id, DailyBoss.current_hp > 0) \
+                .update({'current_hp': DailyBoss.current_hp - click_count}, synchronize_session=False)
 
-        participation.damage_dealt += click_count
-
-        if boss.current_hp == 0:
-            boss.is_defeated = True
             db.session.commit()
-            distribute_rewards(boss.id)
 
-        db.session.commit()
+            boss = DailyBoss.query.get(boss_id)
+            if boss.current_hp <= 0 and not boss.is_defeated:
+                boss.is_defeated = True
+                boss.current_hp = 0
+                boss.defeated_at = datetime.now(timezone.utc)
+                db.session.commit()
+                distribute_rewards(boss.id)
+        else:
+            pass
     elif click_count > 0:
         db.session.commit()
 
     user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
+    final_state = get_boss_state(user_id)
 
-    response = {
+    return jsonify({
         'total_clicks': user.clicks,
         'coins': user.coins,
-        'boss': None
-    }
-
-    if boss:
-        response['boss'] = {
-            'active': not boss.is_defeated,
-            'current_hp': boss.current_hp,
-            'max_hp': boss.max_hp
-        }
-
-    return jsonify(response)
+        'game_state': final_state
+    })
 
 
-@app.route('/debug/reset')
-def debug_reset():
-    db.session.query(BossParticipation).delete()
-    db.session.query(DailyBoss).delete()
-    db.session.commit()
-    return "Boss reset."
-
-
-@app.route('/fix_database')
-def fix_database():
+@app.route('/fix_db')
+def fix_db():
     try:
         with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0;"))
+            conn.execute(text("DROP TABLE IF EXISTS boss_participation"))
+            conn.execute(text("DROP TABLE IF EXISTS daily_boss"))
+            conn.execute(text("DROP TABLE IF EXISTS boss_vote"))
             conn.commit()
-        db.create_all()
 
-        return "Database updated! Coins column added and Boss tables created. You can go back to home now."
+        db.create_all()
+        return "Database Updated Successfully! <a href='/'>Go Back Home</a>"
     except Exception as e:
-        return f"An error occurred: {str(e)}"
+        return f"Error fixing DB: {e}"
 
 
 if __name__ == '__main__':

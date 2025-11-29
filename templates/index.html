@@ -2,22 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KCA Clicker v1.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KCA Clicker v1.2</title>
     <style>
         :root {
-            --bg-color: #ffffff;
+            --bg-color: #f8fafc;
             --text-main: #0f172a;
-            --text-muted: #94a3b8;
+            --text-muted: #64748b;
             --primary: #3b82f6;
             --primary-hover: #2563eb;
             --primary-shadow: #1d4ed8;
             --danger: #ef4444;
             --boss-color: #dc2626;
             --coin-color: #f59e0b;
-            --border-subtle: #e2e8f0;
+            --border-subtle: #cbd5e1;
+            --box-bg: #f1f5f9;
+            --vote-color: #8b5cf6;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -34,255 +37,223 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 40px;
+            padding: 15px 20px;
             width: 100%;
-        }
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 16px 6px 6px;
             background: white;
+            border-bottom: 1px solid #e2e8f0;
+            z-index: 50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .user-profile {
+            display: flex; align-items: center; gap: 10px;
+            background-color: var(--box-bg);
             border: 1px solid var(--border-subtle);
-            border-radius: 30px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            padding: 4px 12px 4px 4px; border-radius: 30px;
         }
         .user-avatar {
-            width: 32px;
-            height: 32px;
+            width: 32px; height: 32px;
             background-color: var(--primary);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            text-transform: uppercase;
+            color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px;
         }
         .user-info-col { display: flex; flex-direction: column; line-height: 1.2; }
-        .user-name { font-weight: 600; font-size: 15px; color: var(--text-main); }
-        .user-coins { font-size: 12px; color: var(--coin-color); font-weight: 700; }
+        .user-name { font-weight: 600; font-size: 13px; color: var(--text-main); }
+        .user-coins { font-size: 11px; color: var(--coin-color); font-weight: 700; }
 
-        .nav-group { display: flex; gap: 20px; align-items: center; }
+        .nav-group { display: flex; gap: 10px; align-items: center; }
         .nav-link {
-            text-decoration: none;
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            text-decoration: none; font-weight: 600; font-size: 13px; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            background-color: var(--box-bg); color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 16px; border-radius: 20px; transition: all 0.2s;
         }
-        .nav-link:hover { color: var(--primary); transform: translateY(-1px); }
-        .nav-link.logout:hover { color: var(--danger); }
+        .nav-link:hover { background-color: #e2e8f0; color: var(--text-main); transform: translateY(-1px); }
 
-        /* --- NEW: HIGHLIGHTED NEWS BUTTON --- */
-        .nav-link.news-btn {
-            background-color: #eff6ff; /* Light Blue Background */
-            color: var(--primary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid #bfdbfe;
-            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1);
-            font-weight: 700;
-        }
-        .nav-link.news-btn:hover {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-        }
-
-        /* Pulsing Red Dot Animation */
+        .nav-link.news-btn { background-color: #eff6ff; color: var(--primary); border-color: #bfdbfe; }
+        .nav-link.news-btn:hover { background-color: var(--primary); color: white; border-color: var(--primary); }
         .notification-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--danger);
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 5px;
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-            animation: pulse-red 2s infinite;
+            width: 6px; height: 6px; background-color: var(--danger);
+            border-radius: 50%; display: inline-block; animation: pulse 2s infinite;
         }
-        /* When hovering the button, make dot white to contrast */
-        .nav-link.news-btn:hover .notification-dot {
-            background-color: white;
-            animation: none;
-        }
-
-        @keyframes pulse-red {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
 
         /* --- MAIN --- */
         main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding-bottom: 60px;
-            position: relative;
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            position: relative; width: 100%; max-width: 600px;
+            margin: 0 auto; padding-bottom: 40px;
         }
 
-        /* --- AUTHOR FOOTER --- */
-        .author-badge {
-            position: fixed;
-            bottom: 20px;
-            right: 25px;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            border: 1px solid var(--border-subtle);
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(4px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: default;
-            z-index: 10;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        }
-        .author-badge span { font-weight: 400; opacity: 0.7; margin-right: 4px; }
-        .author-badge:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+        /* --- STATUS PANEL --- */
+        #statusPanel {
+            width: 85%; margin-bottom: 30px; text-align: center;
+            min-height: 60px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
         }
 
-        /* --- MODAL (UPDATES) --- */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .modal-overlay.show { display: flex; opacity: 1; }
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 450px;
-            padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            text-align: left;
-            transform: scale(0.95);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .modal-overlay.show .modal-content { transform: scale(1); }
-        .modal-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
-        }
-        .modal-title { font-size: 20px; font-weight: 800; color: var(--text-main); }
-        .modal-badge {
-            background: #dbeafe; color: var(--primary); font-size: 11px; font-weight: 700;
-            padding: 4px 8px; border-radius: 6px; text-transform: uppercase;
-        }
-        .update-list { list-style: none; margin-bottom: 25px; }
-        .update-list li {
-            font-size: 14px; color: var(--text-main); margin-bottom: 12px;
-            padding-left: 20px; position: relative; line-height: 1.5;
-        }
-        .update-list li::before {
-            content: "•"; color: var(--primary); position: absolute; left: 0; font-weight: bold;
-        }
-        .btn-close-modal {
-            width: 100%; padding: 12px; background-color: var(--text-main); color: white;
-            border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
-            font-size: 14px; transition: background 0.2s;
-        }
-        .btn-close-modal:hover { background-color: black; }
-
-
-        /* --- BOSS BAR --- */
-        #bossContainer {
-            position: absolute; top: 20px; width: 80%; max-width: 500px; text-align: center;
-        }
+        .boss-active-ui { width: 100%; }
         .boss-label {
             color: var(--boss-color); font-weight: 800; text-transform: uppercase;
-            letter-spacing: 2px; font-size: 14px; margin-bottom: 8px; animation: pulse 2s infinite;
+            letter-spacing: 1px; font-size: 12px; margin-bottom: 6px;
         }
         .health-bar-bg {
-            width: 100%; height: 24px; background-color: #fee2e2; border-radius: 12px;
+            width: 100%; height: 20px; background-color: #fee2e2; border-radius: 10px;
             overflow: hidden; border: 2px solid var(--boss-color); position: relative;
         }
         .health-bar-fill {
-            height: 100%; background-color: var(--boss-color); width: 100%; transition: width 0.2s ease-out;
+            height: 100%; background-color: var(--boss-color); width: 100%;
+            transition: width 0.2s linear;
         }
         .health-text {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            font-size: 10px; font-weight: 700; color: white;
         }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
+        .cooldown-ui { color: var(--text-muted); }
+        .timer-val { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; color: var(--text-main); }
+
+        .vote-ui { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .vote-btn {
+            background-color: var(--vote-color); color: white; border: none;
+            padding: 10px 20px; border-radius: 20px; font-weight: 700; font-size: 14px;
+            cursor: pointer; box-shadow: 0 4px 0 #6d28d9; transition: transform 0.1s;
+        }
+        .vote-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #6d28d9; }
+        .vote-btn:disabled { background-color: #cbd5e1; box-shadow: none; transform: none; cursor: not-allowed; }
+        .vote-count { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+        /* SCORE */
         .score-label {
-            font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
-            color: var(--text-muted); margin-bottom: 15px; font-weight: 700;
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--text-muted); font-weight: 700; margin-bottom: 5px;
         }
         #scoreDisplay {
-            font-size: 120px; line-height: 1; font-weight: 800; color: var(--text-main);
-            margin: 0 0 60px 0; font-variant-numeric: tabular-nums;
+            font-size: 64px; font-weight: 800; line-height: 1; margin-bottom: 50px;
+            font-variant-numeric: tabular-nums;
         }
+
+        /* --- ENHANCED CLICK BUTTON --- */
+        .click-zone { perspective: 500px; /* For 3D tilt */ }
 
         #clickBtn {
-            width: 220px; height: 220px; border-radius: 50%; border: none;
-            background-color: var(--primary); color: white; font-size: 24px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 15px 0 var(--primary-shadow), 0 20px 40px rgba(59, 130, 246, 0.3);
-            transition: transform 0.1s, box-shadow 0.1s; -webkit-tap-highlight-color: transparent; outline: none;
-        }
-        #clickBtn:active {
-            transform: translateY(10px); box-shadow: 0 5px 0 var(--primary-shadow), 0 5px 10px rgba(59, 130, 246, 0.3);
-        }
-        body.boss-mode #clickBtn {
-            background-color: var(--boss-color); box-shadow: 0 15px 0 #991b1b, 0 20px 40px rgba(220, 38, 38, 0.3);
-        }
-        body.boss-mode #clickBtn:active {
-            box-shadow: 0 5px 0 #991b1b, 0 5px 10px rgba(220, 38, 38, 0.3);
+            width: 200px; height: 200px; border-radius: 50%; border: none;
+            background: radial-gradient(circle at 30% 30%, #60a5fa, #3b82f6);
+            color: white; font-size: 24px; font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 15px 25px rgba(59, 130, 246, 0.4), inset 0 -5px 0 rgba(0,0,0,0.2);
+            transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
         }
 
-        @media (max-width: 600px) {
-            #scoreDisplay { font-size: 80px; }
-            #clickBtn { width: 180px; height: 180px; font-size: 20px; }
-            header { padding: 15px 20px; }
-            .nav-group { gap: 15px; }
+        /* Ripple Effect Container */
+        .ripple {
+            position: absolute; border-radius: 50%;
+            transform: scale(0); animation: ripple 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+        }
+        @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+        /* Boss Mode Colors */
+        body.boss-mode #clickBtn {
+            background: radial-gradient(circle at 30% 30%, #ef4444, #dc2626);
+            box-shadow: 0 15px 25px rgba(220, 38, 38, 0.4), inset 0 -5px 0 rgba(0,0,0,0.2);
+        }
+
+        /* PARTICLES */
+        .particle {
+            position: absolute; pointer-events: none; color: var(--text-main);
+            font-weight: 800; font-size: 24px; z-index: 10;
+            /* Initial state set by JS */
+        }
+
+        /* MODAL UPDATES */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px); z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-content {
+            background: white; padding: 0; border-radius: 20px; width: 90%; max-width: 450px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden;
+            display: flex; flex-direction: column; max-height: 80vh;
+        }
+        .modal-header { padding: 20px 25px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .modal-body { padding: 25px; overflow-y: auto; }
+
+        .patch-block { margin-bottom: 25px; }
+        .patch-title { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .patch-date { font-size: 12px; color: var(--text-muted); font-weight: 600; background: #e2e8f0; padding: 2px 8px; border-radius: 10px; }
+        .patch-list { padding-left: 20px; line-height: 1.5; font-size: 14px; color: #475569; }
+        .patch-list li { margin-bottom: 4px; }
+
+        .btn-close {
+            margin: 0 25px 25px 25px; padding: 12px; background: var(--text-main); color: white;
+            border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-close:hover { background: black; }
+
+        .author-badge {
+            position: fixed; bottom: 15px; right: 15px; font-size: 10px;
+            color: var(--text-muted); background: rgba(255,255,255,0.9);
+            padding: 5px 10px; border-radius: 15px; border: 1px solid var(--border-subtle);
+        }
+
+        @media (max-width: 500px) {
+            header { padding: 10px 15px; }
+            .nav-group { gap: 8px; }
+            .nav-link { padding: 6px 12px; font-size: 12px; }
+            .user-profile { padding: 3px 10px 3px 3px; }
             .user-name { display: none; }
-            .author-badge { right: 50%; transform: translateX(50%); bottom: 15px; white-space: nowrap; }
-            .author-badge:hover { transform: translateX(50%) translateY(-2px); }
+            #clickBtn { width: 180px; height: 180px; }
+            #scoreDisplay { font-size: 50px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- MODAL HTML -->
+    <!-- UPDATED MODAL -->
     <div id="updateModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <span class="modal-title">KCA Clicker Updates</span>
-                <span class="modal-badge">v1.1</span>
+                <h2 style="margin:0; font-size:20px;">Patch Notes</h2>
             </div>
-            <ul class="update-list">
-                <li><strong>Smoother Gameplay:</strong> Fixed a critical bug where the page reloaded on every click. Click latency has been drastically reduced for an instant response.</li>
-                <li><strong>Visual Overhaul:</strong> Cleaner user interface with improved function layouts and clearer navigation.</li>
-                <li><strong>New Economy:</strong> Added 'Coins' system. You can now earn currency! (Item Store currently in progress).</li>
-                <li><strong>Daily World Boss:</strong> A boss spawns every day at <strong>08:00 AM (Spain Time)</strong>. All players attack the same boss HP. Work together to defeat it and share the coin rewards!</li>
-            </ul>
-            <button class="btn-close-modal" onclick="closeModal()">Got it!</button>
+            <div class="modal-body">
+
+                <div class="patch-block">
+                    <div class="patch-title">
+                        v1.2 - The Summoning
+                        <span class="patch-date">Current</span>
+                    </div>
+                    <ul class="patch-list">
+                        <li><strong>Manual Summoning:</strong> Bosses no longer spawn automatically. Players must gather 3 votes to summon.</li>
+                        <li><strong>Cooldown System:</strong> After a boss is defeated, there is a 1-hour recovery period before voting begins.</li>
+                        <li><strong>Enhanced Clicks:</strong> Enhanced visuals, 3D button tilt, and haptic feedback.</li>
+                    </ul>
+                </div>
+
+                <div class="patch-block" style="opacity: 0.7;">
+                    <div class="patch-title">
+                        v1.1 - Economy Update
+                        <span class="patch-date">Previous</span>
+                    </div>
+                    <ul class="patch-list">
+                        <li><strong>Coins:</strong> Added currency system. Rewards are distributed based on boss damage contribution.</li>
+                        <li><strong>Performance:</strong> Backend rewritten for instant click response (optimistic UI).</li>
+                        <li><strong>UI Overhaul:</strong> New modern interface and profile cards.</li>
+                    </ul>
+                </div>
+
+            </div>
+            <button class="btn-close" onclick="closeModal()">Got it</button>
         </div>
     </div>
 
@@ -291,117 +262,120 @@
             <div class="user-avatar">{{ user.username[0]|upper }}</div>
             <div class="user-info-col">
                 <span class="user-name">{{ user.username }}</span>
-                <span class="user-coins">Coins: <span id="coinDisplay">{{ user.coins }}</span></span>
+                <span class="user-coins"><span id="coinDisplay">{{ user.coins }}</span> 🪙</span>
             </div>
         </div>
         <div class="nav-group">
-            <!-- Updated Highlighted News Button -->
-            <a onclick="openModal()" class="nav-link news-btn">
-                News <span class="notification-dot"></span>
-            </a>
-            <a onclick="saveAndExit('/stats')" class="nav-link">
-                <span>Leaderboard</span> ↗
-            </a>
-            <a onclick="saveAndExit('/logout')" class="nav-link logout">
-                <span>Exit</span> ✕
-            </a>
+            <a onclick="openModal()" class="nav-link news-btn">News <span class="notification-dot"></span></a>
+            <a onclick="saveAndExit('/stats')" class="nav-link">Rank</a>
+            <a onclick="saveAndExit('/logout')" class="nav-link">Exit</a>
         </div>
     </header>
 
     <main>
-        {% set is_boss_active = boss and not boss.is_defeated %}
-
-        <div id="bossContainer" style="display: {{ 'block' if is_boss_active else 'none' }};">
-            <div class="boss-label">⚔️ World Boss Active ⚔️</div>
-            <div class="health-bar-bg">
-                {% set initial_width = (boss.current_hp / boss.max_hp * 100) if is_boss_active else 100 %}
-                <div class="health-bar-fill" id="bossHealthFill" style="width: {{ initial_width }}%;"></div>
-                <div class="health-text">
-                    <span id="bossHealthText">{{ boss.current_hp if is_boss_active else 100000 }}</span> HP
+        <div id="statusPanel">
+            <!-- Active -->
+            <div id="activePanel" class="boss-active-ui" style="display:none;">
+                <div class="boss-label">⚔️ World Boss Active ⚔️</div>
+                <div class="health-bar-bg">
+                    <div class="health-bar-fill" id="bossHealthFill" style="width: 100%;"></div>
+                    <div class="health-text"><span id="bossHealthText"></span> HP</div>
                 </div>
+            </div>
+            <!-- Cooldown -->
+            <div id="cooldownPanel" class="cooldown-ui" style="display:none;">
+                <div style="font-size:12px; font-weight:700;">BOSS RECOVERING</div>
+                <div id="cooldownTimer" class="timer-val">00:00</div>
+            </div>
+            <!-- Voting -->
+            <div id="votingPanel" class="vote-ui" style="display:none;">
+                <button id="voteBtn" class="vote-btn" onclick="castVote()">SUMMON BOSS</button>
+                <div class="vote-count"><span id="voteCount">0</span>/3 Votes to Spawn</div>
             </div>
         </div>
 
         <div class="score-label">Total Clicks</div>
         <h1 id="scoreDisplay">{{ user.clicks }}</h1>
 
-        <script>
-            if ({{ 'true' if is_boss_active else 'false' }}) {
-                document.body.classList.add('boss-mode');
-            }
-        </script>
-
-        <button id="clickBtn">CLICK</button>
+        <div class="click-zone">
+            <button id="clickBtn">TAP</button>
+        </div>
     </main>
 
-    <!-- Author Footer -->
-    <div class="author-badge">
-        <span>Created by</span> Jun Cui
-    </div>
+    <div class="author-badge">By Jun Cui</div>
 
     <script>
-        const modal = document.getElementById('updateModal');
-        const UPDATE_VERSION = 'kca_v1.1_final';
+        // --- CONFIG ---
+        const SYNC_INTERVAL = 2500;
+        const PATCH_VERSION = 'v1.2_final';
 
-        function openModal() {
-            modal.classList.add('show');
-        }
-
-        function closeModal() {
-            modal.classList.remove('show');
-            localStorage.setItem('seenPatch', UPDATE_VERSION);
-        }
-
-        window.addEventListener('load', () => {
-            const seen = localStorage.getItem('seenPatch');
-            if (seen !== UPDATE_VERSION) {
-                setTimeout(openModal, 500);
-            }
-        });
-
-        const button = document.getElementById('clickBtn');
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const coinDisplay = document.getElementById('coinDisplay');
-
-        const bossContainer = document.getElementById('bossContainer');
-        const bossHealthFill = document.getElementById('bossHealthFill');
-        const bossHealthText = document.getElementById('bossHealthText');
-
-        let displayedScore = parseInt(scoreDisplay.innerText);
+        // --- STATE ---
+        let displayedScore = parseInt(document.getElementById('scoreDisplay').innerText);
         let pendingClicks = 0;
-        let uiDirty = false;
+        let gameState = {
+            status: '{{ game_state.status }}',
+            boss_data: {{ game_state.boss_data|tojson if game_state.boss_data else 'null' }},
+            cooldown_seconds: {{ game_state.cooldown_seconds }},
+            votes: {{ game_state.votes }},
+            user_voted: {{ 'true' if game_state.user_voted else 'false' }}
+        };
 
-        {% if is_boss_active %}
-            let bossActive = true;
-            let bossHP = {{ boss.current_hp }};
-            let bossMaxHP = {{ boss.max_hp }};
-        {% else %}
-            let bossActive = false;
-            let bossHP = 100000;
-            let bossMaxHP = 100000;
-        {% endif %}
+        // --- DOM ---
+        const scoreEl = document.getElementById('scoreDisplay');
+        const coinEl = document.getElementById('coinDisplay');
+        const clickBtn = document.getElementById('clickBtn');
 
-        button.addEventListener('click', function() {
-            pendingClicks++;
-            displayedScore++;
-            if (bossActive && bossHP > 0) { bossHP--; }
-            uiDirty = true;
-        });
+        const activePanel = document.getElementById('activePanel');
+        const cooldownPanel = document.getElementById('cooldownPanel');
+        const votingPanel = document.getElementById('votingPanel');
+        const bossFill = document.getElementById('bossHealthFill');
+        const bossText = document.getElementById('bossHealthText');
+        const cooldownTimer = document.getElementById('cooldownTimer');
+        const voteBtn = document.getElementById('voteBtn');
+        const voteCount = document.getElementById('voteCount');
 
+        let uiDirty = true;
+        let cooldownTicker = null;
+
+        // --- INIT ---
+        if (localStorage.getItem('seenPatch') !== PATCH_VERSION) setTimeout(openModal, 500);
+        startCooldownTicker();
+
+        // --- UI LOOP ---
         function updateUI() {
             if (uiDirty) {
-                scoreDisplay.innerText = displayedScore;
-                if (bossActive) {
-                    bossContainer.style.display = 'block';
-                    if (!document.body.classList.contains('boss-mode')) {
-                        document.body.classList.add('boss-mode');
+                scoreEl.innerText = displayedScore;
+
+                activePanel.style.display = 'none';
+                cooldownPanel.style.display = 'none';
+                votingPanel.style.display = 'none';
+                document.body.classList.remove('boss-mode');
+
+                if (gameState.status === 'ACTIVE' && gameState.boss_data) {
+                    activePanel.style.display = 'block';
+                    document.body.classList.add('boss-mode');
+                    const hp = gameState.boss_data.current_hp;
+                    const max = gameState.boss_data.max_hp;
+                    bossFill.style.width = Math.max(0, (hp / max) * 100) + "%";
+                    bossText.innerText = Math.max(0, hp);
+                }
+                else if (gameState.status === 'COOLDOWN') {
+                    cooldownPanel.style.display = 'flex';
+                }
+                else if (gameState.status === 'VOTING') {
+                    votingPanel.style.display = 'flex';
+                    voteCount.innerText = gameState.votes;
+                    if (gameState.user_voted) {
+                        voteBtn.innerText = "VOTED";
+                        voteBtn.disabled = true;
+                        voteBtn.style.backgroundColor = "#94a3b8";
+                        voteBtn.style.boxShadow = "none";
+                    } else {
+                        voteBtn.innerText = "SUMMON BOSS";
+                        voteBtn.disabled = false;
+                        voteBtn.style.backgroundColor = "";
+                        voteBtn.style.boxShadow = "";
                     }
-                    const pct = (bossHP / bossMaxHP) * 100;
-                    bossHealthFill.style.width = pct + "%";
-                    bossHealthText.innerText = Math.max(0, bossHP);
-                } else {
-                    bossContainer.style.display = 'none';
-                    document.body.classList.remove('boss-mode');
                 }
                 uiDirty = false;
             }
@@ -409,60 +383,195 @@
         }
         requestAnimationFrame(updateUI);
 
-        function syncClicksToBackend(callback) {
-            const clicksToSend = pendingClicks;
+        function startCooldownTicker() {
+            if(cooldownTicker) clearInterval(cooldownTicker);
+            cooldownTicker = setInterval(() => {
+                if (gameState.status === 'COOLDOWN' && gameState.cooldown_seconds > 0) {
+                    gameState.cooldown_seconds--;
+                    const m = Math.floor(gameState.cooldown_seconds / 60);
+                    const s = gameState.cooldown_seconds % 60;
+                    cooldownTimer.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                } else if (gameState.status === 'COOLDOWN' && gameState.cooldown_seconds <= 0) {
+                    cooldownTimer.innerText = "Ready...";
+                }
+            }, 1000);
+        }
+
+        // --- ENHANCED INPUT HANDLER ---
+        clickBtn.addEventListener('mousedown', handleInput);
+        clickBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleInput(e.touches[0]);
+        }, { passive: false });
+
+        // Reset tilt when mouse leaves
+        clickBtn.addEventListener('mouseleave', () => {
+            clickBtn.style.transform = `perspective(500px) rotateX(0deg) rotateY(0deg) scale(1)`;
+        });
+
+        function handleInput(e) {
+            // 1. Game Logic
+            pendingClicks++;
+            displayedScore++;
+            if (gameState.status === 'ACTIVE' && gameState.boss_data && gameState.boss_data.current_hp > 0) {
+                gameState.boss_data.current_hp--;
+            }
+
+            // 2. Haptic (Mobile)
+            if (navigator.vibrate) navigator.vibrate(10);
+
+            // 3. 3D Tilt Logic
+            // Get click position relative to button center
+            const rect = clickBtn.getBoundingClientRect();
+            // If touch event, we need clientX/Y from the touch object, otherwise typical mouse event
+            const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            // Calculate tilt (clamp values to keep it subtle)
+            const rotateX = ((y - centerY) / centerY) * -15; // Invert Y for rotation
+            const rotateY = ((x - centerX) / centerX) * 15;
+
+            // Apply Transform (Tilt + Scale down)
+            clickBtn.style.transform = `perspective(500px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(0.95)`;
+
+            // Reset scale quickly
+            setTimeout(() => {
+                clickBtn.style.transform = `perspective(500px) rotateX(0deg) rotateY(0deg) scale(1)`;
+            }, 100);
+
+            // 4. Ripple Effect
+            createRipple(e, rect);
+
+            // 5. Particles
+            createParticle(e.clientX, e.clientY);
+
+            uiDirty = true;
+        }
+
+        function createRipple(e, rect) {
+            const circle = document.createElement("span");
+            const diameter = Math.max(rect.width, rect.height);
+            const radius = diameter / 2;
+
+            // Coordinates relative to button
+            const x = (e.clientX - rect.left) - radius;
+            const y = (e.clientY - rect.top) - radius;
+
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${x}px`;
+            circle.style.top = `${y}px`;
+            circle.classList.add("ripple");
+
+            const ripple = clickBtn.getElementsByClassName("ripple")[0];
+            if (ripple) ripple.remove(); // remove old ripple to prevent buildup
+
+            clickBtn.appendChild(circle);
+        }
+
+        function createParticle(x, y) {
+            const el = document.createElement('div');
+            el.classList.add('particle');
+            el.innerText = '+1';
+
+            // Random spread
+            const spreadX = (Math.random() - 0.5) * 60;
+            const spreadY = (Math.random() * -50) - 30; // Always goes up
+            const rot = (Math.random() - 0.5) * 40;
+
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+
+            // Animate using Web Animations API for better performance than CSS classes alone
+            el.animate([
+                { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
+                { transform: `translate(${spreadX}px, ${spreadY}px) rotate(${rot}deg)`, opacity: 0 }
+            ], {
+                duration: 600,
+                easing: 'cubic-bezier(0, .9, .57, 1)',
+                fill: 'forwards'
+            }).onfinish = () => el.remove();
+
+            document.body.appendChild(el);
+        }
+
+        function castVote() {
+            voteBtn.disabled = true;
+            voteBtn.innerText = "Voting...";
+            fetch('/vote_boss', { method: 'POST' }).then(r => r.json()).then(data => {
+                if(data.error) { alert(data.error); return; }
+                gameState.user_voted = true;
+                uiDirty = true;
+                syncClicks();
+            });
+        }
+
+        // --- SYNC ---
+        function syncClicks(callback) {
+            const payload = { count: pendingClicks };
+            const sent = pendingClicks;
             pendingClicks = 0;
 
             fetch('/sync_clicks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ count: clicksToSend })
+                body: JSON.stringify(payload)
             })
-            .then(response => {
-                if (response.status === 401 || response.status === 404) {
-                    window.location.href = '/login';
-                    return {};
-                }
-                return response.json();
+            .then(res => {
+                if(res.status === 401) window.location.href='/login';
+                return res.json();
             })
             .then(data => {
-                if (data.total_clicks !== undefined) {
-                    displayedScore = data.total_clicks + pendingClicks;
-                    coinDisplay.innerText = data.coins;
+                if(data.error) return;
+                displayedScore = data.total_clicks + pendingClicks;
+                coinEl.innerText = data.coins;
 
-                    if (data.boss && data.boss.active) {
-                        bossActive = true;
-                        bossHP = data.boss.current_hp - pendingClicks;
-                        bossMaxHP = data.boss.max_hp;
-                    } else {
-                        bossActive = false;
-                    }
-                    uiDirty = true;
+                const s = data.game_state;
+                gameState.status = s.status;
+                gameState.votes = s.votes;
+                gameState.user_voted = s.user_voted;
+
+                if(Math.abs(gameState.cooldown_seconds - s.cooldown_seconds) > 5)
+                    gameState.cooldown_seconds = s.cooldown_seconds;
+
+                if (s.boss_data) {
+                    if (!gameState.boss_data) gameState.boss_data = {};
+                    gameState.boss_data.max_hp = s.boss_data.max_hp;
+                    gameState.boss_data.id = s.boss_data.id;
+                    gameState.boss_data.current_hp = s.boss_data.current_hp - pendingClicks;
+                } else {
+                    gameState.boss_data = null;
                 }
+                uiDirty = true;
                 if (callback) callback();
             })
-            .catch(error => {
-                console.error('Sync error:', error);
-                pendingClicks += clicksToSend;
-            });
+            .catch(() => { pendingClicks += sent; });
         }
 
-        setInterval(() => { syncClicksToBackend(); }, 2500);
+        setInterval(() => syncClicks(), SYNC_INTERVAL);
 
         function saveAndExit(url) {
-            scoreDisplay.style.opacity = "0.3";
-            button.disabled = true;
-            syncClicksToBackend(function() { window.location.href = url; });
+            scoreEl.style.opacity = '0.5'; clickBtn.disabled = true;
+            syncClicks(() => { window.location.href = url; });
         }
 
-        window.addEventListener("visibilitychange", () => {
+        document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && pendingClicks > 0) {
-                const payload = JSON.stringify({ count: pendingClicks });
-                const blob = new Blob([payload], { type: 'application/json' });
+                const blob = new Blob([JSON.stringify({count: pendingClicks})], {type: 'application/json'});
                 navigator.sendBeacon('/sync_clicks', blob);
                 pendingClicks = 0;
             }
         });
+
+        function openModal() { document.getElementById('updateModal').classList.add('show'); }
+        function closeModal() {
+            document.getElementById('updateModal').classList.remove('show');
+            localStorage.setItem('seenPatch', PATCH_VERSION);
+        }
     </script>
 </body>
 </html>
