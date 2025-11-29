@@ -9,9 +9,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_random_key_change_this_later'
+app.secret_key = '284586jc'
 
-# --- Database Configuration ---
 db_url = os.environ.get('DATABASE_URL')
 engine_options = {}
 
@@ -33,15 +32,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app, engine_options=engine_options)
 
 
-# --- Models ---
-
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     clicks = db.Column(db.Integer, default=0, index=True)
-    # CHANGED: Float -> Integer
     coins = db.Column(db.Integer, default=0)
 
 
@@ -68,8 +64,6 @@ with app.app_context():
     db.create_all()
 
 
-# --- Helper Functions ---
-
 def get_spain_time():
     spain_tz = pytz.timezone('Europe/Madrid')
     return datetime.now(spain_tz)
@@ -79,7 +73,6 @@ def get_todays_boss_status():
     now = get_spain_time()
     today_str = now.strftime('%Y-%m-%d')
 
-    # 1. Time Check (After 20:00 / 8 PM)
     if now.hour < 20:
         return None
 
@@ -101,9 +94,7 @@ def distribute_rewards(boss_id):
     reward_pool = boss.total_reward_pool
 
     for p in participants:
-        # Calculate share
         raw_share = (p.damage_dealt / total_hp_pool) * reward_pool
-        # CHANGED: Round and cast to Integer
         share = int(round(raw_share))
 
         if share > 0:
@@ -111,8 +102,6 @@ def distribute_rewards(boss_id):
 
     db.session.commit()
 
-
-# --- Routes ---
 
 @app.route('/')
 def index():
@@ -160,7 +149,6 @@ def login():
                 return render_template('login.html', error="Invalid password.")
         else:
             hashed_pw = generate_password_hash(password)
-            # Initialize with 0 integer coins
             new_user = User(username=username, password_hash=hashed_pw, clicks=0, coins=0)
 
             try:
@@ -223,7 +211,7 @@ def sync_clicks():
 
     response = {
         'total_clicks': user.clicks,
-        'coins': user.coins,  # Will be integer now
+        'coins': user.coins,
         'boss': None
     }
 
@@ -248,14 +236,9 @@ def debug_reset():
 @app.route('/fix_database')
 def fix_database():
     try:
-        # 1. Add the 'coins' column to the existing 'users' table
-        # We use 'IF NOT EXISTS' so it doesn't crash if you run it twice.
         with db.engine.connect() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0;"))
             conn.commit()
-
-        # 2. Create the new tables (DailyBoss, BossParticipation)
-        # db.create_all only creates tables that don't exist yet.
         db.create_all()
 
         return "Database updated! Coins column added and Boss tables created. You can go back to home now."

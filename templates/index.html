@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clicker War</title>
+    <title>KCA Clicker v1.1</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -64,7 +64,7 @@
         .user-name { font-weight: 600; font-size: 15px; color: var(--text-main); }
         .user-coins { font-size: 12px; color: var(--coin-color); font-weight: 700; }
 
-        .nav-group { display: flex; gap: 30px; }
+        .nav-group { display: flex; gap: 20px; align-items: center; }
         .nav-link {
             text-decoration: none;
             color: var(--text-muted);
@@ -79,6 +79,48 @@
         .nav-link:hover { color: var(--primary); transform: translateY(-1px); }
         .nav-link.logout:hover { color: var(--danger); }
 
+        /* --- NEW: HIGHLIGHTED NEWS BUTTON --- */
+        .nav-link.news-btn {
+            background-color: #eff6ff; /* Light Blue Background */
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #bfdbfe;
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1);
+            font-weight: 700;
+        }
+        .nav-link.news-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        /* Pulsing Red Dot Animation */
+        .notification-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse-red 2s infinite;
+        }
+        /* When hovering the button, make dot white to contrast */
+        .nav-link.news-btn:hover .notification-dot {
+            background-color: white;
+            animation: none;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+
         /* --- MAIN --- */
         main {
             flex: 1;
@@ -90,9 +132,36 @@
             position: relative;
         }
 
+        /* --- AUTHOR FOOTER --- */
+        .author-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 25px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        .author-badge span { font-weight: 400; opacity: 0.7; margin-right: 4px; }
+        .author-badge:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+        }
+
         /* --- MODAL (UPDATES) --- */
         .modal-overlay {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.6);
@@ -103,14 +172,11 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        .modal-overlay.show {
-            display: flex;
-            opacity: 1;
-        }
+        .modal-overlay.show { display: flex; opacity: 1; }
         .modal-content {
             background: white;
             width: 90%;
-            max-width: 420px;
+            max-width: 450px;
             padding: 30px;
             border-radius: 24px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -118,143 +184,73 @@
             transform: scale(0.95);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .modal-overlay.show .modal-content {
-            transform: scale(1);
-        }
+        .modal-overlay.show .modal-content { transform: scale(1); }
         .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
         }
         .modal-title { font-size: 20px; font-weight: 800; color: var(--text-main); }
         .modal-badge {
-            background: #dbeafe; color: var(--primary);
-            font-size: 11px; font-weight: 700;
-            padding: 4px 8px; border-radius: 6px;
-            text-transform: uppercase;
+            background: #dbeafe; color: var(--primary); font-size: 11px; font-weight: 700;
+            padding: 4px 8px; border-radius: 6px; text-transform: uppercase;
         }
-        .update-list {
-            list-style: none;
-            margin-bottom: 25px;
-        }
+        .update-list { list-style: none; margin-bottom: 25px; }
         .update-list li {
-            font-size: 14px;
-            color: var(--text-main);
-            margin-bottom: 12px;
-            padding-left: 20px;
-            position: relative;
-            line-height: 1.5;
+            font-size: 14px; color: var(--text-main); margin-bottom: 12px;
+            padding-left: 20px; position: relative; line-height: 1.5;
         }
         .update-list li::before {
-            content: "•";
-            color: var(--primary);
-            position: absolute;
-            left: 0;
-            font-weight: bold;
+            content: "•"; color: var(--primary); position: absolute; left: 0; font-weight: bold;
         }
         .btn-close-modal {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--text-main);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
+            width: 100%; padding: 12px; background-color: var(--text-main); color: white;
+            border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+            font-size: 14px; transition: background 0.2s;
         }
         .btn-close-modal:hover { background-color: black; }
 
 
         /* --- BOSS BAR --- */
         #bossContainer {
-            position: absolute;
-            top: 20px;
-            width: 80%;
-            max-width: 500px;
-            text-align: center;
+            position: absolute; top: 20px; width: 80%; max-width: 500px; text-align: center;
         }
         .boss-label {
-            color: var(--boss-color);
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 14px;
-            margin-bottom: 8px;
-            animation: pulse 2s infinite;
+            color: var(--boss-color); font-weight: 800; text-transform: uppercase;
+            letter-spacing: 2px; font-size: 14px; margin-bottom: 8px; animation: pulse 2s infinite;
         }
         .health-bar-bg {
-            width: 100%;
-            height: 24px;
-            background-color: #fee2e2;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid var(--boss-color);
-            position: relative;
+            width: 100%; height: 24px; background-color: #fee2e2; border-radius: 12px;
+            overflow: hidden; border: 2px solid var(--boss-color); position: relative;
         }
         .health-bar-fill {
-            height: 100%;
-            background-color: var(--boss-color);
-            width: 100%;
-            transition: width 0.2s ease-out;
+            height: 100%; background-color: var(--boss-color); width: 100%; transition: width 0.2s ease-out;
         }
         .health-text {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         .score-label {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            margin-bottom: 15px;
-            font-weight: 700;
+            font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--text-muted); margin-bottom: 15px; font-weight: 700;
         }
         #scoreDisplay {
-            font-size: 120px;
-            line-height: 1;
-            font-weight: 800;
-            color: var(--text-main);
-            margin: 0 0 60px 0;
-            font-variant-numeric: tabular-nums;
+            font-size: 120px; line-height: 1; font-weight: 800; color: var(--text-main);
+            margin: 0 0 60px 0; font-variant-numeric: tabular-nums;
         }
 
         #clickBtn {
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            border: none;
-            background-color: var(--primary);
-            color: white;
-            font-size: 24px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 15px 0 var(--primary-shadow), 0 20px 40px rgba(59, 130, 246, 0.3);
-            transition: transform 0.1s, box-shadow 0.1s;
-            -webkit-tap-highlight-color: transparent;
-            outline: none;
+            width: 220px; height: 220px; border-radius: 50%; border: none;
+            background-color: var(--primary); color: white; font-size: 24px; font-weight: 700;
+            cursor: pointer; box-shadow: 0 15px 0 var(--primary-shadow), 0 20px 40px rgba(59, 130, 246, 0.3);
+            transition: transform 0.1s, box-shadow 0.1s; -webkit-tap-highlight-color: transparent; outline: none;
         }
         #clickBtn:active {
-            transform: translateY(10px);
-            box-shadow: 0 5px 0 var(--primary-shadow), 0 5px 10px rgba(59, 130, 246, 0.3);
+            transform: translateY(10px); box-shadow: 0 5px 0 var(--primary-shadow), 0 5px 10px rgba(59, 130, 246, 0.3);
         }
         body.boss-mode #clickBtn {
-            background-color: var(--boss-color);
-            box-shadow: 0 15px 0 #991b1b, 0 20px 40px rgba(220, 38, 38, 0.3);
+            background-color: var(--boss-color); box-shadow: 0 15px 0 #991b1b, 0 20px 40px rgba(220, 38, 38, 0.3);
         }
         body.boss-mode #clickBtn:active {
             box-shadow: 0 5px 0 #991b1b, 0 5px 10px rgba(220, 38, 38, 0.3);
@@ -266,6 +262,8 @@
             header { padding: 15px 20px; }
             .nav-group { gap: 15px; }
             .user-name { display: none; }
+            .author-badge { right: 50%; transform: translateX(50%); bottom: 15px; white-space: nowrap; }
+            .author-badge:hover { transform: translateX(50%) translateY(-2px); }
         }
     </style>
 </head>
@@ -275,14 +273,14 @@
     <div id="updateModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <span class="modal-title">Latest Updates</span>
-                <span class="modal-badge">New</span>
+                <span class="modal-title">KCA Clicker Updates</span>
+                <span class="modal-badge">v1.1</span>
             </div>
             <ul class="update-list">
-                <li><strong>Cleaner User Interface:</strong> Enhanced clicking experience for smoother gameplay.</li>
-                <li><strong>Layout Changes:</strong> Improved function layouts and navigation.</li>
-                <li><strong>Coin Economy:</strong> Added currency system (Store currently in progress).</li>
-                <li><strong>World Boss:</strong> Spawns daily at 8 o'clock in the morning. Defeating it awards coins!</li>
+                <li><strong>Smoother Gameplay:</strong> Fixed a critical bug where the page reloaded on every click. Click latency has been drastically reduced for an instant response.</li>
+                <li><strong>Visual Overhaul:</strong> Cleaner user interface with improved function layouts and clearer navigation.</li>
+                <li><strong>New Economy:</strong> Added 'Coins' system. You can now earn currency! (Item Store currently in progress).</li>
+                <li><strong>Daily World Boss:</strong> A boss spawns every day at <strong>08:00 AM (Spain Time)</strong>. All players attack the same boss HP. Work together to defeat it and share the coin rewards!</li>
             </ul>
             <button class="btn-close-modal" onclick="closeModal()">Got it!</button>
         </div>
@@ -297,9 +295,9 @@
             </div>
         </div>
         <div class="nav-group">
-            <!-- Added Update Button -->
-            <a onclick="openModal()" class="nav-link">
-                <span>News</span> ⓘ
+            <!-- Updated Highlighted News Button -->
+            <a onclick="openModal()" class="nav-link news-btn">
+                News <span class="notification-dot"></span>
             </a>
             <a onclick="saveAndExit('/stats')" class="nav-link">
                 <span>Leaderboard</span> ↗
@@ -336,10 +334,14 @@
         <button id="clickBtn">CLICK</button>
     </main>
 
+    <!-- Author Footer -->
+    <div class="author-badge">
+        <span>Created by</span> Jun Cui
+    </div>
+
     <script>
-        // --- MODAL LOGIC ---
         const modal = document.getElementById('updateModal');
-        const UPDATE_VERSION = 'v1.0_updates'; // Changing this string will reshow the modal to users
+        const UPDATE_VERSION = 'kca_v1.1_final';
 
         function openModal() {
             modal.classList.add('show');
@@ -347,20 +349,16 @@
 
         function closeModal() {
             modal.classList.remove('show');
-            // Remember that the user closed it
             localStorage.setItem('seenPatch', UPDATE_VERSION);
         }
 
-        // Check if user has seen these specific updates
         window.addEventListener('load', () => {
             const seen = localStorage.getItem('seenPatch');
             if (seen !== UPDATE_VERSION) {
-                // Slight delay for animation niceness
                 setTimeout(openModal, 500);
             }
         });
 
-        // --- GAME LOGIC ---
         const button = document.getElementById('clickBtn');
         const scoreDisplay = document.getElementById('scoreDisplay');
         const coinDisplay = document.getElementById('coinDisplay');
@@ -393,7 +391,6 @@
         function updateUI() {
             if (uiDirty) {
                 scoreDisplay.innerText = displayedScore;
-
                 if (bossActive) {
                     bossContainer.style.display = 'block';
                     if (!document.body.classList.contains('boss-mode')) {
